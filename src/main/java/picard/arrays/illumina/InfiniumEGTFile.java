@@ -45,6 +45,12 @@ public class InfiniumEGTFile extends InfiniumDataFile implements AutoCloseable {
     private static final int VALID_GENTRAIN_DATA_TYPE = 9;
     private static final int INVALID_FILE_VERSION = 2;
 
+    private String gencallVersion;
+    private String clusterVersion;
+    private String callVersion;
+    private String normalizationVersion;
+    private String dateCreated;
+
     public int[][] n;
     public float[][] meanR;
     public float[][] meanTheta;
@@ -151,16 +157,11 @@ public class InfiniumEGTFile extends InfiniumDataFile implements AutoCloseable {
 
     private void readHeaderData() throws IOException {
         setFileVersion(parseInt());
-        // skip gcVersion
-        skipString();
-        // skip clusterVersion
-        skipString();
-        // skip callVersion
-        skipString();
-        // skip normalizationVersion
-        skipString();
-        // skip dataCreated
-        skipString();
+        gencallVersion = parseString();
+        clusterVersion = parseString();
+        callVersion = parseString();
+        normalizationVersion = parseString();
+        dateCreated = parseString();
         // skip isWGT
         skipBoolean();
 

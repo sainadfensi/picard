@@ -32,7 +32,6 @@ import picard.arrays.illumina.IlluminaManifestRecord;
 import picard.arrays.illumina.InfiniumEGTFile;
 import picard.arrays.illumina.InfiniumGTCFile;
 import picard.arrays.illumina.InfiniumGTCRecord;
-import picard.arrays.illumina.InfiniumNormalizationManifest;
 import picard.arrays.illumina.InfiniumVcfFields;
 import picard.pedigree.Sex;
 import htsjdk.samtools.SAMSequenceDictionary;
@@ -97,7 +96,6 @@ import java.util.Set;
 @DocumentedFeature
 public class GtcToVcf extends CommandLineProgram {
 
-
     static final String USAGE_DETAILS =
             "GtcToVcf takes an Illumina GTC file and converts it to a VCF file using several supporting files. " +
                     "A GTC file is an Illumina-specific file containing called genotypes in AA/AB/BB format. " +
@@ -131,8 +129,8 @@ public class GtcToVcf extends CommandLineProgram {
     @Argument(shortName = "CF", doc = "An Illumina cluster file (egt)")
     public File CLUSTER_FILE;
 
-    @Argument(shortName = "NORM_MANIFEST", doc = "An Illumina bead pool manifest (a manifest containing the Illumina normalization ids) (bpm.csv)")
-    public File ILLUMINA_NORMALIZATION_MANIFEST;
+    @Argument(shortName = "BPM", doc = "The Illumina Bead Pool Manifest (.bpm) file")
+    public File BPM_FILE;
 
     @Argument(shortName = "E_GENDER", doc = "The expected gender for this sample.", optional = true)
     public String EXPECTED_GENDER;
@@ -172,11 +170,9 @@ public class GtcToVcf extends CommandLineProgram {
 
     @Override
     protected int doWork() {
-        final InfiniumNormalizationManifest infiniumNormalizationManifest = new InfiniumNormalizationManifest(ILLUMINA_NORMALIZATION_MANIFEST);
-
         Sex fingerprintSex = getFingerprintSex(FINGERPRINT_GENOTYPES_VCF_FILE);
-        String gtcGender = getGenderFromGtcFile(GENDER_GTC, infiniumNormalizationManifest);
-        try (InfiniumGTCFile infiniumGTCFile = new InfiniumGTCFile(new DataInputStream(new FileInputStream(INPUT)), infiniumNormalizationManifest);
+        String gtcGender = getGenderFromGtcFile(GENDER_GTC, BPM_FILE);
+        try (InfiniumGTCFile infiniumGTCFile = new InfiniumGTCFile(new DataInputStream(new FileInputStream(INPUT)), BPM_FILE);
              InfiniumEGTFile infiniumEGTFile = new InfiniumEGTFile(CLUSTER_FILE)) {
             final Build37ExtendedIlluminaManifest manifest = setupAndGetManifest(infiniumGTCFile);
 
@@ -209,6 +205,7 @@ public class GtcToVcf extends CommandLineProgram {
 
         IOUtil.assertFileIsReadable(INPUT);
         IOUtil.assertFileIsReadable(EXTENDED_ILLUMINA_MANIFEST);
+        IOUtil.assertFileIsReadable(BPM_FILE);
         IOUtil.assertFileIsWritable(OUTPUT);
         refSeq = ReferenceSequenceFileFactory.getReferenceSequenceFile(REFERENCE_SEQUENCE);
         final SAMSequenceDictionary sequenceDictionary = refSeq.getSequenceDictionary();
@@ -263,10 +260,10 @@ public class GtcToVcf extends CommandLineProgram {
         return Sex.Unknown;
     }
 
-    private String getGenderFromGtcFile(final File gtcFile, final InfiniumNormalizationManifest infiniumNormalizationManifest) {
+    private String getGenderFromGtcFile(final File gtcFile, final File bpmFile) {
         String gtcGender = null;
         if (gtcFile != null) {
-            try (InfiniumGTCFile infiniumGTCGenderFile = new InfiniumGTCFile(new DataInputStream(new FileInputStream(gtcFile)), infiniumNormalizationManifest)) {
+            try (InfiniumGTCFile infiniumGTCGenderFile = new InfiniumGTCFile(new DataInputStream(new FileInputStream(gtcFile)), bpmFile)) {
                 gtcGender = infiniumGTCGenderFile.getGender();
             } catch (IOException e) {
                 throw new PicardException("Error processing GTC File: " + gtcFile.getAbsolutePath(), e);
